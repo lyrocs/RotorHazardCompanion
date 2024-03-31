@@ -37,6 +37,7 @@ export default function Marshal() {
   const [activeVideoName, setActiveVideoName] = useState('')
   const [activeRace, setActiveRace] = useState({})
   const [races, setRaces] = useState(null)
+  const [racesVideo, setRacesVideo] = useState(null)
   const [raceList, setRaceList] = useState(null)
   const [raceDetail, setRaceDetail] = useState(null)
   const canvas = React.useRef(null)
@@ -51,12 +52,11 @@ export default function Marshal() {
   useEffect(() => {
     const socket = socketHelper()
 
-    socket.emit('load_data', { load_types: ['races','raceDetails'] })
+    socket.emit('load_data', { load_types: ['races', 'raceDetails', 'racesVideo'] })
 
     socket.on('races', data => {
       setRaceList(data)
     })
-
 
     socket.on('raceDetails', data => {
       setRaceDetail(data)
@@ -66,12 +66,17 @@ export default function Marshal() {
       fetchApi('/api/race').then(data => {
         setRaces(data)
       })
+      socket.emit('load_data', { load_types: ['racesVideo'] })
     })
 
     socket.on('start_race', data => {
       fetchApi('/api/race').then(data => {
         setRaces(data)
       })
+    })
+
+    socket.on('racesVideo', data => {
+      setRacesVideo(data)
     })
 
     return () => {
@@ -85,8 +90,8 @@ export default function Marshal() {
     }
     let history_times = raceDetail.history_times || []
     let history_values = raceDetail.history_values || []
-    history_times = [history_times[0] - (activeRace.staging || 0),...history_times]
-    history_values = [0,...history_values]
+    history_times = [history_times[0] - (activeRace.staging || 0), ...history_times]
+    history_values = [0, ...history_values]
 
     const chart = new SmoothieChart({
       responsive: true,
@@ -142,8 +147,10 @@ export default function Marshal() {
   const fetchPilotRace = async function (pilotrace_id, heatId, roundIndex) {
     setCurrentPilotRace(pilotrace_id)
     await fetchApi('/api/marshal/pilotrace/' + pilotrace_id, { method: 'POST' })
-    const currentRaceVideo = races.find(race => race.heatId === heatId && race.round === roundIndex)
-    console.log('fec pilote', currentRaceVideo, races ,heatId, roundIndex)
+    const currentRaceVideo = racesVideo.find(
+      raceVideo => raceVideo.heatId === heatId && raceVideo.round === roundIndex,
+    )
+    console.log('fec pilote', currentRaceVideo, races, heatId, roundIndex)
     if (currentRaceVideo) {
       setActiveVideoName(currentRaceVideo.videoPath)
       setActiveRace(currentRaceVideo)
@@ -208,7 +215,9 @@ export default function Marshal() {
                               ? 'bg-green-800 text-white px-4 py-2 rounded'
                               : 'bg-gray-500 text-white px-4 py-2 rounded'
                           }
-                          onClick={() => fetchPilotRace(pilot.pilotrace_id, race.heat_id, roundIndex + 1)}
+                          onClick={() =>
+                            fetchPilotRace(pilot.pilotrace_id, race.heat_id, roundIndex + 1)
+                          }
                         >
                           {pilot.callsign}
                         </button>
@@ -225,7 +234,7 @@ export default function Marshal() {
         >
           Refresh
         </button>
-       
+
         <div className="w-full flex justify-center">
           <ul>
             {races &&
@@ -240,7 +249,10 @@ export default function Marshal() {
                   {race.videoPath}
                   <button
                     className="bmb-4 bg-red-500 text-white px-4 py-2 rounded"
-                    onClick={() => { setActiveVideoName(race.videoPath); setActiveRace(race)}}
+                    onClick={() => {
+                      setActiveVideoName(race.videoPath)
+                      setActiveRace(race)
+                    }}
                   >
                     Read
                   </button>
@@ -258,24 +270,24 @@ export default function Marshal() {
         </div>
         <div className="w-full flex justify-center">
           <div className="">
-          <canvas
-            ref={canvas}
-            id="smoothie-chart"
-            style={{width: '800px', height: '200px'}}
-            onMouseUp={mouseUp}
-          ></canvas>
+            <canvas
+              ref={canvas}
+              id="smoothie-chart"
+              style={{ width: '800px', height: '200px' }}
+              onMouseUp={mouseUp}
+            ></canvas>
           </div>
         </div>
-        <div className="w-full flex justify-center"> 
-            <ReactPlayer
-              ref={player}
-              url={`${process.env.NEXT_PUBLIC_API_URL}/api/marshal/video?filename=${activeVideoName}`}
-              width="1000px"
-              height="500px"
-              onProgress={onProgress}
-              playing={playing}
-              controls
-            />
+        <div className="w-full flex justify-center">
+          <ReactPlayer
+            ref={player}
+            url={`${process.env.NEXT_PUBLIC_API_URL}/api/marshal/video?filename=${activeVideoName}`}
+            width="1000px"
+            height="500px"
+            onProgress={onProgress}
+            playing={playing}
+            controls
+          />
         </div>
       </div>
     </>

@@ -8,6 +8,10 @@ export default function Current() {
   const [currentHeat, setCurrentHeat] = useState(null)
 
   useEffect(() => {
+    fetch('/api/admin/rh', {
+      method: 'POST',
+      body: JSON.stringify({ sync: ['currentHeat'] }),
+    })
     const socket = socketHelper()
     socket.emit('load_data', { load_types: ['currentHeat'] })
     socket.on('currentHeat', data => {

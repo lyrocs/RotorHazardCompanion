@@ -31,6 +31,7 @@ export default (req, res) => {
       })
       socket.on('load_data', async data => {
         const loadTypes = data?.load_types || []
+
         if (loadTypes.length) {
           const dbData = await getData()
           loadTypes.forEach(key => {
@@ -40,9 +41,6 @@ export default (req, res) => {
           })
           if (loadTypes.includes('races')) {
             socket.emit('race_list')
-          }
-          if (loadTypes.includes('pilots')) {
-            socket.emit('pilot_data')
           }
         }
       })
@@ -166,12 +164,7 @@ export default (req, res) => {
       server?.emit('heartbeat', data)
     })
     socket.on('result_data', async data => {
-      const resultsData = await genericImport(
-        data.classes,
-        'result_data',
-        'results',
-        transformResults,
-      )
+      const resultsData = await genericImport(data, 'result_data', 'results', transformResults)
       server?.emit('results', resultsData)
     })
 

@@ -4,12 +4,16 @@ import socketHelper from '@/helpers/socket.helper'
 
 export default function Laps() {
   const [pilots, setPilots] = useState(null)
+  const [results, setResults] = useState(null)
 
   useEffect(() => {
     const socket = socketHelper()
-    socket.emit('load_data', { load_types: ['pilots'] })
+    socket.emit('load_data', { load_types: ['pilots', 'results'] })
     socket.on('pilots', data => {
       setPilots(data)
+    })
+    socket.on('results', data => {
+      setResults(data)
     })
 
     return () => {
@@ -32,10 +36,12 @@ export default function Laps() {
                     {pilot.name}
                   </td>
                 </tr>
-                {pilot.qualifs.map(qualif => (
+                {results?.byPilot[pilot.id]?.laps?.map(lap => (
                   <tr className="border-b dark:border-neutral-500">
-                    <td className="whitespace-nowrap px-6 py-4">{qualif.round}</td>
-                    <td className="whitespace-nowrap px-6 py-4">{qualif.time}</td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {lap.heatName} - {lap.round}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">{lap.time}</td>
                   </tr>
                 ))}
               </tbody>
@@ -46,5 +52,34 @@ export default function Laps() {
     </div>
   ))
 
-  return <div className="grid grid-cols-12 gap-card-gap table-main gap-4">{table}</div>
+  const laps = (
+    <div className=" col-span-4 md:col-span-3 col-span-12">
+      <div className="overflow-x-auto sm:-mx-6 lg:-mx-8">
+        <div className="inline-block min-w-full py-2 sm:px-6 lg:px-8">
+          <div className="overflow-hidden">
+            <table className="min-w-full border text-center text-sm font-light dark:border-neutral-500">
+              <tbody>
+                {results?.byLaps?.map(lap => (
+                  <tr className="border-b dark:border-neutral-500">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {pilots.find(pilot => pilot.id === lap.pilotId)?.name}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">{lap.heatName}</td>
+                    <td className="whitespace-nowrap px-6 py-4">{lap.round}</td>
+                    <td className="whitespace-nowrap px-6 py-4">{lap.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="grid grid-cols-12 gap-card-gap table-main gap-4">
+      {table} {laps}
+    </div>
+  )
 }

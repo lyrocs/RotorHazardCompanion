@@ -6,6 +6,10 @@ export default function AdminPilots() {
   const [pilots, setPilots] = useState([])
 
   useEffect(() => {
+    fetch('/api/admin/rh', {
+      method: 'POST',
+      body: JSON.stringify({ sync: ['pilots'] }),
+    })
     const socket = socketHelper()
     socket.emit('load_data', { load_types: ['pilots'] })
     socket.on('pilots', data => {

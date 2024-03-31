@@ -91,7 +91,124 @@ const extractFinalResult = (finals, qualifs) => {
   return results
 }
 
+const extractHeats = raw => {
+  if (!Object.keys(raw.result_data?.heats || {}).length) {
+    return []
+  }
+  const heats = []
+  Object.keys(raw.result_data.heats).forEach(heatId => {
+    const heat = raw.result_data.heats[heatId]
+    const heatName = heat.displayname?.toLowerCase() || ''
+    const rounds = heat.rounds.map(round => {
+      const nodes = round.nodes.filter(node => node.callsign)
+      const date = round.start_time_formatted
+      const pilots = nodes.map(node => {
+        return {
+          callsign: node.callsign,
+          pilot_id: node.pilot_id,
+          laps: node.laps.reduce((acc, value, index) => {
+            if (index && !value.deleted) {
+              acc.push({
+                id: value.id,
+                time: value.lap_time_formatted,
+              })
+            }
+            return acc
+          }, []),
+        }
+      })
+      return {
+        id: round.id,
+        date,
+        pilots,
+      }
+    })
+    heats.push({
+      id: heatId,
+      name: heatName,
+      rounds,
+    })
+  })
+
+  return heats
+}
+
+const extractByPilots = raw => {
+  if (!Object.keys(raw.result_data?.heats || {}).length) {
+    return []
+  }
+  const pilots = {}
+  Object.keys(raw.result_data.heats).forEach(heatId => {
+    const heat = raw.result_data.heats[heatId]
+    const heatName = heat.displayname?.toLowerCase() || ''
+    heat.rounds.forEach(round => {
+      const nodes = round.nodes.filter(node => node.callsign)
+      nodes.forEach(node => {
+        if (node.pilot_id && !pilots[node.pilot_id]) {
+          pilots[node.pilot_id] = {
+            name: node.callsign,
+            laps: [],
+          }
+        }
+        const laps = node.laps.reduce((acc, value, index) => {
+          if (index && !value.deleted) {
+            acc.push({
+              id: value.id,
+              time: value.lap_time_formatted,
+              heatName,
+              heatId: heat.heat_id,
+              round: round.id,
+            })
+          }
+          return acc
+        }, [])
+        if (laps.length) {
+          pilots[node.pilot_id].laps.push(...laps)
+        }
+      })
+    })
+  })
+
+  return pilots
+}
+
+const extractByLaps = raw => {
+  if (!Object.keys(raw.result_data?.heats || {}).length) {
+    return []
+  }
+  const pilots = {}
+  const laps = []
+  Object.keys(raw.result_data.heats).forEach(heatId => {
+    const heat = raw.result_data.heats[heatId]
+    const heatName = heat.displayname?.toLowerCase() || ''
+    heat.rounds.forEach(round => {
+      const nodes = round.nodes.filter(node => node.callsign && node.pilot_id)
+      nodes.forEach(node => {
+        node.laps.forEach((lap, index) => {
+          if (lap.delete || !index) {
+            return
+          }
+          laps.push({
+            time: lap.lap_time_formatted,
+            heatName,
+            heatId: heat.heat_id,
+            round: round.id,
+            pilotId: node.pilot_id,
+          })
+        })
+      })
+    })
+  })
+
+  return laps.sort((a, b) => {
+    return a.time > b.time ? 1 : -1
+  })
+}
+
 export default function transformResults(raw) {
+  const heats = extractHeats(raw)
+  const byPilot = extractByPilots(raw)
+  const byLaps = extractByLaps(raw)
   const pilots = transformPilots(raw)
   const finals = extractFinals(raw)
   const qualifs = extractQualifs(pilots)
@@ -101,5 +218,8 @@ export default function transformResults(raw) {
     finals,
     qualifs,
     finalResult,
+    heats,
+    byPilot,
+    byLaps,
   }
 }

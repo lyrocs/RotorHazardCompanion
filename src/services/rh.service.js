@@ -5,7 +5,8 @@ export async function genericImport(rawData, rhKey, key, transformer) {
   db.data.rh[rhKey] = rawData
   const transformedData = transformer(db.data.rh)
   db.data[key] = transformedData
-  await db.write()
+  await db.update(({ rh }) => (rh[rhKey] = rawData))
+  // await db.write()
   return transformedData
 }
 
