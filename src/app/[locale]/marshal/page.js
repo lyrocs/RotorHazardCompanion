@@ -33,13 +33,13 @@ import ReactPlayer from 'react-player'
 export default function Marshal() {
   const [playing, setPlaying] = useState(false)
   const [currentPilotRace, setCurrentPilotRace] = useState(true)
-  const [showLive, setShowLive] = useState(false)
   const [activeVideoName, setActiveVideoName] = useState('')
   const [activeRace, setActiveRace] = useState({})
   const [races, setRaces] = useState(null)
   const [racesVideo, setRacesVideo] = useState(null)
   const [raceList, setRaceList] = useState(null)
   const [raceDetail, setRaceDetail] = useState(null)
+  const [selectedRound, setSelectedRound] = useState(null)
   const canvas = React.useRef(null)
   const player = React.useRef(null)
 
@@ -144,7 +144,9 @@ export default function Marshal() {
     renderChart()
   }, [raceDetail])
 
-  const fetchPilotRace = async function (pilotrace_id, heatId, roundIndex) {
+  const fetchPilotRace = async function (pilotrace_id) {
+    const { heatId, roundIndex } = selectedRound
+    console.log('fetchPilotRace', pilotrace_id, heatId, roundIndex)
     setCurrentPilotRace(pilotrace_id)
     await fetchApi('/api/marshal/pilotrace/' + pilotrace_id, { method: 'POST' })
     const currentRaceVideo = racesVideo.find(
@@ -185,89 +187,97 @@ export default function Marshal() {
     context.save()
   }
 
+  const hasReccord = (heatId, round) => {
+    return racesVideo?.find(raceVideo => raceVideo.heatId === heatId && raceVideo.round === round)
+      ? '🎥'
+      : ''
+  }
+
+  const raceListTable = (
+    <div className="flex justify-center  p-8">
+      <table className="table-auto pt-4">
+        <thead>
+          <tr>
+            <th className="px-4 py-2">Heat name</th>
+            <th className="px-4 py-2">Rounds</th>
+          </tr>
+        </thead>
+        <tbody>
+          {raceList &&
+            raceList.map(race => (
+              <tr>
+                <td>{race.displayname}</td>
+                {race.rounds.map((round, roundIndex) => (
+                  <td>
+                    <button
+                      className={
+                        selectedRound?.race_id === round.race_id
+                          ? 'bg-green-800 text-white px-4 py-2 rounded'
+                          : 'bg-gray-500 text-white px-4 py-2 rounded'
+                      }
+                      onClick={() =>
+                        setSelectedRound({
+                          heatId: race.heat_id,
+                          roundIndex: roundIndex + 1,
+                          ...round,
+                        })
+                      }
+                    >
+                      Round {roundIndex + 1} {hasReccord(race.heat_id, roundIndex + 1)}
+                    </button>
+                  </td>
+                ))}
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  )
+
+  const roundTable = selectedRound && (
+    <div className="flex justify-center  p-8">
+      <table className="table-auto pt-4">
+        <thead>
+          <tr>
+            <th className="px-4 py-2">Pilot #1</th>
+            <th className="px-4 py-2">Pilot #2</th>
+            <th className="px-4 py-2">Pilot #3</th>
+            <th className="px-4 py-2">Pilot #4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {selectedRound.pilotraces.map(pilot => (
+              <td>
+                <button
+                  className={
+                    currentPilotRace === pilot.pilotrace_id
+                      ? 'bg-green-800 text-white px-4 py-2 rounded'
+                      : 'bg-gray-500 text-white px-4 py-2 rounded'
+                  }
+                  onClick={() => fetchPilotRace(pilot.pilotrace_id)}
+                >
+                  {pilot.callsign}
+                </button>
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+
   return (
     <>
-      <div className="flex flex-wrap justify-center gap-8 p-8">
-        <table className="table-auto pt-4">
-          <thead>
-            <tr>
-              <th className="px-4 py-2">Heat</th>
-              <th className="px-4 py-2">Pilot #1</th>
-              <th className="px-4 py-2">Pilot #2</th>
-              <th className="px-4 py-2">Pilot #3</th>
-              <th className="px-4 py-2">Pilot #4</th>
-            </tr>
-          </thead>
-          <tbody>
-            {raceList &&
-              raceList.map(race =>
-                race.rounds.map((round, roundIndex) => (
-                  <tr>
-                    <td>
-                      {race.displayname} lap: {roundIndex + 1}
-                    </td>
-
-                    {round.pilotraces.map(pilot => (
-                      <td>
-                        <button
-                          className={
-                            currentPilotRace === pilot.pilotrace_id
-                              ? 'bg-green-800 text-white px-4 py-2 rounded'
-                              : 'bg-gray-500 text-white px-4 py-2 rounded'
-                          }
-                          onClick={() =>
-                            fetchPilotRace(pilot.pilotrace_id, race.heat_id, roundIndex + 1)
-                          }
-                        >
-                          {pilot.callsign}
-                        </button>
-                      </td>
-                    ))}
-                  </tr>
-                )),
-              )}
-          </tbody>
-        </table>
+      <div className="flex flex-col justify-center gap-8 p-8">
+        {raceListTable}
         <button
           className="bmb-4 bg-green-700 text-white px-4 py-2 rounded"
           onClick={() => fetchApi('/api/marshal/update')}
         >
           Refresh
         </button>
-
-        <div className="w-full flex justify-center">
-          <ul>
-            {races &&
-              races.map(race => (
-                <li>
-                  {race.heatName}
-                  {' - '}
-                  {race.heatId}
-                  {' - '}
-                  {race.round}
-                  {' - '}
-                  {race.videoPath}
-                  <button
-                    className="bmb-4 bg-red-500 text-white px-4 py-2 rounded"
-                    onClick={() => {
-                      setActiveVideoName(race.videoPath)
-                      setActiveRace(race)
-                    }}
-                  >
-                    Read
-                  </button>
-                </li>
-              ))}
-          </ul>
-        </div>
-        <div className="w-full flex justify-center">
-          <button
-            className="bmb-4 bg-red-500 text-white px-4 py-2 rounded"
-            onClick={() => setShowLive(!showLive)}
-          >
-            {showLive ? 'Show Recorded' : 'Show Live'}
-          </button>
-        </div>
+        {roundTable}
         <div className="w-full flex justify-center">
           <div className="">
             <canvas
