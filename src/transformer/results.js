@@ -140,7 +140,7 @@ const extractByPilots = raw => {
   const pilots = {}
   Object.keys(raw.result_data.heats).forEach(heatId => {
     const heat = raw.result_data.heats[heatId]
-    const heatName = heat.displayname?.toLowerCase() || ''
+    const heatName = heat.displayname || ''
     heat.rounds.forEach(round => {
       const nodes = round.nodes.filter(node => node.callsign)
       nodes.forEach(node => {
@@ -176,11 +176,10 @@ const extractByLaps = raw => {
   if (!Object.keys(raw.result_data?.heats || {}).length) {
     return []
   }
-  const pilots = {}
   const laps = []
   Object.keys(raw.result_data.heats).forEach(heatId => {
     const heat = raw.result_data.heats[heatId]
-    const heatName = heat.displayname?.toLowerCase() || ''
+    const heatName = heat.displayname || ''
     heat.rounds.forEach(round => {
       const nodes = round.nodes.filter(node => node.callsign && node.pilot_id)
       nodes.forEach(node => {
@@ -199,10 +198,18 @@ const extractByLaps = raw => {
       })
     })
   })
-
-  return laps.sort((a, b) => {
+  const sortedLaps = laps.sort((a, b) => {
     return a.time > b.time ? 1 : -1
   })
+
+  // add own pilot lap rank in all laps array
+  const lapsWithRank = sortedLaps.reduce((acc, value, index) => {
+    const pilotRank = acc.filter(lap => lap.pilotId === value.pilotId).length + 1
+    acc.push({ ...value, rank: pilotRank })
+    return acc
+  }, [])
+
+  return lapsWithRank
 }
 
 export default function transformResults(raw) {

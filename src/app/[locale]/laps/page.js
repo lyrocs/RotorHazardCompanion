@@ -64,8 +64,10 @@ export default function Laps() {
                     <td className="whitespace-nowrap px-6 py-4">
                       {pilots.find(pilot => pilot.id === lap.pilotId)?.name}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">{lap.heatName}</td>
-                    <td className="whitespace-nowrap px-6 py-4">{lap.round}</td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {lap.heatName}-{lap.round}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">{lap.rank}</td>
                     <td className="whitespace-nowrap px-6 py-4">{lap.time}</td>
                   </tr>
                 ))}
@@ -78,8 +80,9 @@ export default function Laps() {
   )
 
   return (
-    <div className="grid grid-cols-12 gap-card-gap table-main gap-4">
-      {table} {laps}
-    </div>
+    <>
+      <div className="grid grid-cols-12 gap-card-gap table-main gap-4">{table}</div>
+      <div className="flex justify-center">{laps}</div>
+    </>
   )
 }
