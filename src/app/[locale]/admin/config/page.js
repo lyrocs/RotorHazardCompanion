@@ -2,10 +2,15 @@
 import React, { useEffect, useState } from 'react'
 import Card from '@/components/card.js'
 import socketHelper from '@/helpers/socket.helper'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
 
 export default function AdminPilots() {
+  const { status: sessionStatus } = useSession()
+  if (!['loading', 'authenticated'].includes(sessionStatus)) {
+    redirect('/api/auth/signin?callbackUrl=/run')
+  }
   const [config, setConfig] = useState({})
-
 
   useEffect(() => {
     const socket = socketHelper()
@@ -30,25 +35,43 @@ export default function AdminPilots() {
     setConfig({ ...config, [key]: value })
   }
 
- 
- 
-
   return (
     <div>
       <h1>Admin Config</h1>
       <div className="flex flex-col gap-4">
-      <label>Finals Format  <select className="text-black" value={config?.finalsFormat} onChange={e => changeValue('finalsFormat', e.target.value)}>
+        <label>
+          Finals Format{' '}
+          <select
+            className="text-black"
+            value={config?.finalsFormat}
+            onChange={e => changeValue('finalsFormat', e.target.value)}
+          >
             <option value="16double">16 pilots double elimination</option>
             <option value="32double">32 pilots double elimination</option>
-        </select></label>
-       
-        <label>Qualifs name pattern <input className="text-black" type="number" value={config?.qualifName} onChange={e => changeValue('qualifName', e.target.value)} /></label>
-        
-        <label>Finals name pattern         <input className="text-black" type="number" value={config?.finalName} onChange={e => changeValue('finalName', e.target.value)} />
-</label>
+          </select>
+        </label>
 
-      
-      <button onClick={() => updateConfig()}>Save</button>
+        <label>
+          Qualifs name pattern{' '}
+          <input
+            className="text-black"
+            type="number"
+            value={config?.qualifName}
+            onChange={e => changeValue('qualifName', e.target.value)}
+          />
+        </label>
+
+        <label>
+          Finals name pattern{' '}
+          <input
+            className="text-black"
+            type="number"
+            value={config?.finalName}
+            onChange={e => changeValue('finalName', e.target.value)}
+          />
+        </label>
+
+        <button onClick={() => updateConfig()}>Save</button>
       </div>
     </div>
   )

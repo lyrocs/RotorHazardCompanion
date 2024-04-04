@@ -1,8 +1,14 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import socketHelper from '@/helpers/socket.helper'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
 
 export default function AdminPilots() {
+  const { status: sessionStatus } = useSession()
+  if (!['loading', 'authenticated'].includes(sessionStatus)) {
+    redirect('/api/auth/signin?callbackUrl=/run')
+  }
   const [pilots, setPilots] = useState([])
 
   useEffect(() => {

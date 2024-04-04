@@ -12,6 +12,13 @@ const POST = async (req, res) => {
     if (table === 'pilots') {
       loadTypes.push('pilot_data')
     }
+    if (table === 'heats') {
+      loadTypes.push('heat_data')
+    }
+    if (table === 'classes') {
+      loadTypes.push('class_data')
+    }
+
     if (table === 'currentHeat') {
       loadTypes.push('current_heat')
     }

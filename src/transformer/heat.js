@@ -10,6 +10,9 @@ export default function transformHeat(raw) {
       classId: heat.class_id,
       slots: heat.slots.reduce((acc, slot) => {
         if (!slot.pilot_id) {
+          acc.push({
+            ...slot,
+          })
           return acc
         }
         const frequency = raw.frequency_data[slot.node_index]

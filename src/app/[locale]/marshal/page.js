@@ -4,6 +4,8 @@ import { SmoothieChart, TimeSeries } from 'smoothie'
 import socketHelper from '@/helpers/socket.helper'
 import fetchApi from '@/helpers/api.helper.js'
 import ReactPlayer from 'react-player'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
 // import io from 'socket.io-client'
 
 // const history_values = [
@@ -31,6 +33,10 @@ import ReactPlayer from 'react-player'
 // ]
 
 export default function Marshal() {
+  const { status: sessionStatus } = useSession()
+  if (!['loading', 'authenticated'].includes(sessionStatus)) {
+    redirect('/api/auth/signin?callbackUrl=/run')
+  }
   const [playing, setPlaying] = useState(false)
   const [currentPilotRace, setCurrentPilotRace] = useState(true)
   const [activeVideoName, setActiveVideoName] = useState('')

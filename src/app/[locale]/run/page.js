@@ -9,9 +9,15 @@ import NodeCard from './nodeCard.js'
 import Card from '@/components/card.js'
 import Button from '@/components/button.js'
 import Table from '@/components/table.js'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
 const Watch = dynamic(() => import('@/components/watch.js'), { ssr: false })
 
 export default function Current() {
+  const { status: sessionStatus } = useSession()
+  if (!['loading', 'authenticated'].includes(sessionStatus)) {
+    redirect('/api/auth/signin?callbackUrl=/run')
+  }
   const [status, setStatus] = useState(null)
   const [chartData, setChartData] = useState({ values: [], times: [] })
   const [chartTimes, setChartTimes] = useState([])
@@ -29,7 +35,6 @@ export default function Current() {
   const STATUS_RUNNING = 1
   const STATUS_STOPPED = 2
   const STATUS_STAGING = 3
-
 
   useEffect(() => {
     if (!stage?.pi_starts_at_s || !piTime.pi_time) {
@@ -59,11 +64,13 @@ export default function Current() {
       headers: pilotTableHeaders,
       body: pilotTableBody,
     })
-}, [heats, raceStatus])
+  }, [heats, raceStatus])
 
   useEffect(() => {
     const socket = socketHelper()
-    socket.emit('load_data', { load_types: ['stage', 'piTime', 'raceStatus', 'heats', 'laps','frequencies'] })
+    socket.emit('load_data', {
+      load_types: ['stage', 'piTime', 'raceStatus', 'heats', 'laps', 'frequencies'],
+    })
 
     socket.on('stage', data => {
       setStage(data)
