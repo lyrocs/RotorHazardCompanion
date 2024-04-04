@@ -1,21 +1,23 @@
 import transformPilots from '@/transformer/pilots'
 
 const extractFinals = raw => {
-  if (!Object.keys(raw.result_data || {}).length || !raw.pilot_data.length) {
+  if (!Object.keys(raw.result_data?.heats || {}).length) {
     return []
   }
+
   const finals = {}
-  Object.keys(raw.result_data).forEach(heatId => {
-    const heat = raw.result_data[heatId]
+  Object.keys(raw.result_data.heats).forEach(heatId => {
+    const heat = raw.result_data.heats[heatId]
     const heatName = heat.displayname?.toLowerCase() || ''
     if (!['race', 'final'].some(item => heatName.includes(item))) {
       return
     }
+
     const raceNumber = heatName.replace(/^\D+/g, '') || 'final'
-    const pilots = heat.leaderboard.by_race_time.map(pilot => {
+    const pilots = heat.leaderboard.by_race_time.map(raceTime => {
       return {
-        name: pilot.callsign,
-        position: pilot.position,
+        name: raceTime.callsign,
+        position: raceTime.position,
       }
     })
     if (raceNumber === 'final') {
@@ -26,6 +28,40 @@ const extractFinals = raw => {
   })
 
   return finals
+}
+
+const computeFinalResult = rounds => {
+  const pilots = []
+  rounds.forEach(round => {
+    round.leaderboard.by_race_time.forEach(pilot => {
+      const pilotFound = pilots.find(i => i.name === pilot.callsign)
+      const point = pilot.laps !== 3 ? 5 : pilot.position
+      const pilotData = {
+        name: pilot.callsign,
+        position: 0,
+        points: [point],
+      }
+      if (!pilotFound) {
+        pilots.push(pilotData)
+      } else {
+        pilotFound.points.push(point)
+      }
+    })
+  })
+  const allPoints = pilots
+    .map(pilot => pilot.points.reduce((acc, value) => (acc += value)))
+    .sort((a, b) => (a > b ? 1 : -1))
+
+  pilots.forEach(pilot => {
+    // check if pilot.points contains 2 times the value 1
+    if (pilot.points.filter(i => i === 1).length === 2) {
+      pilot.position = 1
+    } else {
+      const pilotPoint = pilot.points.reduce((acc, value) => (acc += value))
+      pilot.position = allPoints.indexOf(pilotPoint) + 1
+    }
+  })
+  return pilots
 }
 
 const extractQualifs = pilots => {
